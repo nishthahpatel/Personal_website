@@ -1,141 +1,86 @@
-'use strict';
+/* =======================
+   Minimal, Robust Script
+   ======================= */
 
+// tiny helper
+const toggleActive = (el, on = null) => {
+  if (!el) return;
+  if (on === null) el.classList.toggle("active");
+  else el.classList[on ? "add" : "remove"]("active");
+};
 
-
-// element toggle function
-const elementToggleFunc = function (elem) { elem.classList.toggle("active"); }
-
-
-
-// sidebar variables
+/* ------------------ SIDEBAR ------------------ */
 const sidebar = document.querySelector("[data-sidebar]");
 const sidebarBtn = document.querySelector("[data-sidebar-btn]");
+if (sidebar && sidebarBtn) {
+  sidebarBtn.addEventListener("click", () => toggleActive(sidebar));
+}
 
-// sidebar toggle functionality for mobile
-sidebarBtn.addEventListener("click", function () { elementToggleFunc(sidebar); });
+/* --------------- PAGE NAVIGATION ---------------
+   Uses data-target on nav buttons to find the article
+   with [data-page="..."]. Falls back to button text (lowercased)
+   if data-target is missing. No dependency on equal array lengths.
+*/
+const navLinks = document.querySelectorAll("[data-nav-link]");
+const pages = document.querySelectorAll("[data-page]");
 
-
-
-
-
-
-// custom select variables
-const select = document.querySelector("[data-select]");
-const selectItems = document.querySelectorAll("[data-select-item]");
-const selectValue = document.querySelector("[data-selecct-value]");
-const filterBtn = document.querySelectorAll("[data-filter-btn]");
-
-select.addEventListener("click", function () { elementToggleFunc(this); });
-
-// add event in all select items
-for (let i = 0; i < selectItems.length; i++) {
-  selectItems[i].addEventListener("click", function () {
-
-    let selectedValue = this.innerText.toLowerCase();
-    selectValue.innerText = this.innerText;
-    elementToggleFunc(select);
-    filterFunc(selectedValue);
-
+function showPage(name) {
+  if (!name) return;
+  pages.forEach(p => toggleActive(p, p.dataset.page === name));
+  navLinks.forEach(l => {
+    const t = (l.dataset.target || l.textContent).trim().toLowerCase();
+    toggleActive(l, t === name);
   });
+  window.scrollTo(0, 0);
 }
 
-// filter variables
-const filterItems = document.querySelectorAll("[data-filter-item]");
-
-const filterFunc = function (selectedValue) {
-
-  for (let i = 0; i < filterItems.length; i++) {
-
-    if (selectedValue === "all") {
-      filterItems[i].classList.add("active");
-    } else if (selectedValue === filterItems[i].dataset.category) {
-      filterItems[i].classList.add("active");
-    } else {
-      filterItems[i].classList.remove("active");
-    }
-
-  }
-
-}
-
-// add event in all filter button items for large screen
-let lastClickedBtn = filterBtn[0];
-
-for (let i = 0; i < filterBtn.length; i++) {
-
-  filterBtn[i].addEventListener("click", function () {
-
-    let selectedValue = this.innerText.toLowerCase();
-    selectValue.innerText = this.innerText;
-    filterFunc(selectedValue);
-
-    lastClickedBtn.classList.remove("active");
-    this.classList.add("active");
-    lastClickedBtn = this;
-
+if (navLinks.length && pages.length) {
+  navLinks.forEach(link => {
+    link.addEventListener("click", () => {
+      const target = (link.dataset.target || link.textContent).trim().toLowerCase();
+      showPage(target);
+    });
   });
-
+  // initial page on load (defaults to 'about' if none is active)
+  const active = document.querySelector("[data-page].active");
+  showPage(active ? active.dataset.page : "about");
 }
 
-
-
-// contact form variables
+/* --------------- CONTACT FORM ---------------
+   Keeps the submit button disabled until the form is valid.
+   If you want the button always enabled, remove the two lines with toggleAttribute.
+*/
 const form = document.querySelector("[data-form]");
 const formInputs = document.querySelectorAll("[data-form-input]");
 const formBtn = document.querySelector("[data-form-btn]");
 
-// add event to all form input field
-for (let i = 0; i < formInputs.length; i++) {
-  formInputs[i].addEventListener("input", function () {
+if (form && formInputs.length && formBtn) {
+  const updateSubmitState = () => {
+    formBtn.toggleAttribute("disabled", !form.checkValidity());
+  };
+  formInputs.forEach(inp => inp.addEventListener("input", updateSubmitState));
+  updateSubmitState(); // set initial state on load
 
-    // check form validation
-    if (form.checkValidity()) {
-      formBtn.removeAttribute("disabled");
-    } else {
-      formBtn.setAttribute("disabled", "");
-    }
-
-  });
+  // Optional: intercept submit so you can integrate FormSubmit/EmailJS later
+  // form.addEventListener("submit", (e) => {
+  //   e.preventDefault();
+  //   // handle send here...
+  // });
 }
 
+/* --------------- THEME TOGGLE --------------- */
+const themeToggleBtn = document.getElementById("theme-toggle");
+const htmlEl = document.documentElement;
 
+// saved theme or default to dark
+const savedTheme = localStorage.getItem("theme") || "dark";
+if (htmlEl) htmlEl.setAttribute("data-theme", savedTheme);
 
-// page navigation variables
-const navigationLinks = document.querySelectorAll("[data-nav-link]");
-const pages = document.querySelectorAll("[data-page]");
-
-// add event to all nav link
-for (let i = 0; i < navigationLinks.length; i++) {
-  navigationLinks[i].addEventListener("click", function () {
-
-    for (let i = 0; i < pages.length; i++) {
-      if (this.innerHTML.toLowerCase() === pages[i].dataset.page) {
-        pages[i].classList.add("active");
-        navigationLinks[i].classList.add("active");
-        window.scrollTo(0, 0);
-      } else {
-        pages[i].classList.remove("active");
-        navigationLinks[i].classList.remove("active");
-      }
-    }
-
+if (themeToggleBtn && htmlEl) {
+  themeToggleBtn.addEventListener("click", () => {
+    const now = htmlEl.getAttribute("data-theme");
+    const next = now === "dark" ? "light" : "dark";
+    htmlEl.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
   });
 }
-
-
-// Theme toggle functionality
-const themeToggleBtn = document.getElementById('theme-toggle');
-const htmlElement = document.documentElement;
-
-// Check for saved theme preference or default to 'dark'
-const currentTheme = localStorage.getItem('theme') || 'dark';
-htmlElement.setAttribute('data-theme', currentTheme);
-
-// Theme toggle event
-themeToggleBtn.addEventListener('click', function() {
-  const currentTheme = htmlElement.getAttribute('data-theme');
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  
-  htmlElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('theme', newTheme);
-});
